@@ -10,10 +10,8 @@ body {
 .pizzeria {
   height: 700px;
   width: auto;
-
   top: 2vh;
   position: relative;
-
   z-index: 4;
 }
 
@@ -84,7 +82,7 @@ body {
 #terminal {
   position: absolute;
   top: 335px;
-  left: 645px;
+  left: calc(50vw - 75px);
   width: 325px;
   height: 210px;
 }
