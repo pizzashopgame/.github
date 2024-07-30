@@ -1,12 +1,12 @@
 <!doctype html>
 <html>
-  <head>
+<head>
     <title>Pizza Shop!</title>
     <link rel="stylesheet" href="static/styles.css">
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-  </head>
-  <body>
+</head>
+<body>
     <!-- Interactive terminal -->
     <div class="body-container">
         <div class="image-container">
@@ -21,107 +21,123 @@
     <img src="static/img/clouds.png" class="clouds">
     <img src="static/img/grass.png" class="grass">
 
-  <!-- PyScript to handle game logic -->
+    <!-- PyScript to handle game logic -->
     <py-script>
-      import asyncio
-      import time
-      import random
-      from pyodide.ffi import create_proxy
-      from js import document, order_fly, box_fly
+        import asyncio
+        import time
+        import random
+        from pyodide.ffi import create_proxy
+        from js import document, order_fly, box_fly
 
-      # Global variables
-      orders = asyncio.Queue()
-      chefs = ['Amy', 'Myles']
-      order_counter = 1  # Initialize global counter
+        # Global variables
+        orders = asyncio.Queue()
+        chefs = ['Amy', 'Myles']
+        order_counter = 1  # Initialize global counter
+        game_running = False
 
-      # Function to append text to the terminal
-      def append_to_terminal(text):
-          output_element = document.getElementById('output')
-          output_element.textContent += text + "\n"
-          output_element.scrollTop = output_element.scrollHeight  # Scroll to the bottom
+        # Function to append text to the terminal
+        def append_to_terminal(text):
+            output_element = document.getElementById('output')
+            output_element.textContent += text + "\n"
+            output_element.scrollTop = output_element.scrollHeight  # Scroll to the bottom
 
-      # Function to add an order
-      async def add_order():
-          global order_counter
-          order = f"Order{order_counter}"
-          order_counter += 1
-          timestamp = time.time()
-          formatted_time = time.strftime("%H:%M:%S", time.localtime(timestamp))
-          append_to_terminal(f"[{formatted_time}] New order added: {order}")
-          order_fly()
-          await orders.put((order, timestamp))
+        # Function to add an order
+        async def add_order():
+            global order_counter
+            order = f"Order{order_counter}"
+            order_counter += 1
+            timestamp = time.time()
+            formatted_time = time.strftime("%H:%M:%S", time.localtime(timestamp))
+            append_to_terminal(f"[{formatted_time}] New order added: {order}")
+            order_fly()
+            await orders.put((order, timestamp))
 
-      # Function to process orders
-      async def process_orders():
-          while True:
-              order, order_time = await orders.get()
-              chef = await get_available_chef()
-              await prepare_pizza(chef, order, order_time)
-              orders.task_done()
+        # Function to process orders
+        async def process_orders():
+            while game_running:
+                order, order_time = await orders.get()
+                chef = await get_available_chef()
+                await prepare_pizza(chef, order, order_time)
+                orders.task_done()
 
-      # Function to get an available chef
-      async def get_available_chef():
-          while not chefs:
-              await asyncio.sleep(0.1)  # Wait for a chef to become available
-          return chefs.pop(0)
+        # Function to get an available chef
+        async def get_available_chef():
+            while not chefs:
+                await asyncio.sleep(0.1)  # Wait for a chef to become available
+            return chefs.pop(0)
 
-      # Function to simulate preparing a pizza
-      async def prepare_pizza(chef, order, order_time):
-          start_time = time.time()
-          start_formatted_time = time.strftime("%H:%M:%S", time.localtime(start_time))
-          append_to_terminal(f"[{start_formatted_time}] Chef {chef} started preparing {order}")
+        # Function to simulate preparing a pizza
+        async def prepare_pizza(chef, order, order_time):
+            start_time = time.time()
+            start_formatted_time = time.strftime("%H:%M:%S", time.localtime(start_time))
+            append_to_terminal(f"[{start_formatted_time}] Chef {chef} started preparing {order}")
 
-          await asyncio.sleep(2)  # Fixed time to prepare a pizza
+            await asyncio.sleep(2)  # Fixed time to prepare a pizza
 
-          end_time = time.time()
-          end_formatted_time = time.strftime("%H:%M:%S", time.localtime(end_time))
-          preparation_time = 2  # Fixed preparation time
-          wait_time = end_time - order_time
+            end_time = time.time()
+            end_formatted_time = time.strftime("%H:%M:%S", time.localtime(end_time))
+            preparation_time = 2  # Fixed preparation time
+            wait_time = end_time - order_time
 
-          response = (f"[{end_formatted_time}] Chef {chef} finished order {order} "
-                      f"(Total wait time: {wait_time:.2f} seconds, Preparation time: {preparation_time} seconds)")
-          append_to_terminal(response)
-          box_fly()
-          chefs.append(chef)  # Return chef to the pool
+            response = (f"[{end_formatted_time}] Chef {chef} finished order {order} "
+                        f"(Total wait time: {wait_time:.2f} seconds, Preparation time: {preparation_time} seconds)")
+            append_to_terminal(response)
+            box_fly()
+            chefs.append(chef)  # Return chef to the pool
 
-      # Function to simulate random order arrivals
-      async def simulate_order_arrivals():
-          while True:
-              await add_order()
-              await asyncio.sleep(random.uniform(1, 5))  # Random interval between 1 and 5 seconds
+        # Function to simulate random order arrivals
+        async def simulate_order_arrivals():
+            while game_running:
+                await add_order()
+                await asyncio.sleep(random.uniform(1, 5))  # Random interval between 1 and 5 seconds
 
-      # Function to start the game
-      async def start_game():
-          append_to_terminal("Game started.")
-          # Start the order arrival simulation
-          asyncio.create_task(simulate_order_arrivals())
-          # Start processing orders
-          await process_orders()
-          append_to_terminal("Game ended.")
+        # Function to start the game
+        async def start_game():
+            global game_running
+            game_running = True
+            append_to_terminal("Game started.")
+            # Start the order arrival simulation
+            asyncio.create_task(simulate_order_arrivals())
+            # Start processing orders
+            await process_orders()
+            append_to_terminal("Game ended.")
 
-      # Define a JavaScript function to call Python function
-      def call_start_game(event=None):
-          asyncio.create_task(start_game())
+        # Function to stop the game
+        def stop_game():
+            global game_running
+            game_running = False
+            append_to_terminal("Game stopped.")
 
-      # Create a proxy for the Python function
-      py_start_game = create_proxy(call_start_game)
+        # Define a JavaScript function to call Python function
+        def toggle_game(event=None):
+            global game_running
+            submit_button = document.getElementById('submit')
+            if game_running:
+                stop_game()
+                submit_button.textContent = "Start Game"
+            else:
+                submit_button.textContent = "Stop Game"
+                asyncio.create_task(start_game())
 
-      # Attach Python function to JavaScript
-      def setup_js_interaction():
-          document.getElementById('submit').addEventListener('click', py_start_game)
+        # Create a proxy for the Python function
+        py_toggle_game = create_proxy(toggle_game)
 
-      setup_js_interaction()
+        # Attach Python function to JavaScript
+        def setup_js_interaction():
+            document.getElementById('submit').addEventListener('click', py_toggle_game)
+
+        setup_js_interaction()
     </py-script>
 
     <ul id="box-list">
-      <!-- <li><img src="static/img/box.png" class="box"></li> -->
+        <!-- <li><img src="static/img/box.png" class="box"></li> -->
     </ul>
     <ul id="order-list">
-      <!-- <li><img src="static/img/order.png" class="order"></li> -->
+        <!-- <li><img src="static/img/order.png" class="order"></li> -->
     </ul>
 
     <!-- Scripts -->
     <script src="scripts/make_pizza_fly.js"></script>
     <script src="scripts/make_orders_fly.js"></script>
-  </body>
+</body>
 </html>
