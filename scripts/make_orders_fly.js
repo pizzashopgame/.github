@@ -4,7 +4,7 @@ function order_fly() {
   DOM_img.src = "../static/img/order.png";
   DOM_img.classList.add("order");
   node.appendChild(DOM_img);
-  container = document.getElementById("order-list")
+  container = document.getElementById("order-list");
   container.insertBefore(node, container.firstElement);
   
   intervalId = setInterval(() => {

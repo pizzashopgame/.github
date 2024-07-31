@@ -88,7 +88,7 @@
         async def simulate_order_arrivals():
             while game_running:
                 await add_order()
-                await asyncio.sleep(random.uniform(1, 5))  # Random interval between 1 and 5 seconds
+                await asyncio.sleep(random.uniform(1, 2.5))  # Random interval between 1 and 5 seconds
 
         # Function to start the game
         async def start_game():
